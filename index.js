@@ -1,7 +1,7 @@
 'use strict';
 
-const tests_per_lamina_btl = 500;
-const tests_per_wash_blt = 1272;
+const tests_per_lamina_btl = 383;
+const tests_per_wash_blt = 928;
 
 const e = React.createElement;
 
