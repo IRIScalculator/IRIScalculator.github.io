@@ -1,7 +1,16 @@
 'use strict';
 
-const tests_per_lamina_btl = 416;
-const tests_per_wash_blt = 928;
+const lamina_dead_volume = 200;
+const wash_dead_volume = 450;
+const lamina_btl_volume = 7000 - lamina_dead_volume;
+const wash_btl_volume = 7000 - wash_dead_volume;
+const lamina_start_day = 175; // 1 cleanser + 2 dil + 1 focus + 2 QC
+const lamina_end_day = 105; // 1 cleanser + 2 dil
+const lamina_session = 7; // volume for start
+const wash_session = 25; // volume for start
+const lamina_patient = 14; // volume per sample
+const wash_patient = 7.5; // volume per sample
+const session_per_day = 2; // average numbers of session per qne day
 
 const e = React.createElement;
 
@@ -44,11 +53,11 @@ class IRIScalculator extends React.Component {
   handleSubmit(event) {
 	event.preventDefault();
 	const nstripes = n_stripes_pack(actual_tests_chemistry(this.state.tests_chemistry, this.state.working_days));
-	const nwash = n_wash_pack(actual_tests_chemistry(this.state.tests_chemistry, this.state.working_days));
+	const nwash = n_wash_pack(actual_tests_chemistry(this.state.tests_chemistry, this.state.working_days), this.state.working_days);
 	const ncacbcc = 9;
 	const calcheck = 5;
 	const ndesiccant = n_desiccant_pack(this.state.working_days);
-	const nlamina = n_lamina_pack(actual_tests_micro(this.state.tests_micro, this.state.working_days));
+	const nlamina = n_lamina_pack(actual_volume_micro(this.state.tests_micro, this.state.working_days));
 	const ncontrol_focus = 12;
 	const ncalibrator = 3;
 	const ncleanser = 1;
@@ -299,29 +308,27 @@ function Result(props) {
 
 function actual_tests_chemistry(tests_chemistry, working_days) {
   return tests_chemistry*working_days // actual patients results
-  + working_days*3 // tests for clean/deluen before work
   + 52*10 // clean GCC modul once a week
   + working_days*3 // tests for QC
   + 40 // cal check 4 times a year
   ;
 }
 
-function actual_tests_micro(tests_micro, working_days) {
-  return tests_micro*working_days // actual patients results
-  + working_days*3 // tests for clean/deluen before work
-  + working_days*3 // tests for clean/deluen after work
-  + working_days*2 // tests for focus
-  + working_days*(2+2*7) // tests for QC and prime after QC
-  + 120 // tests for calibration per year
+function actual_volume_micro(tests_micro, working_days) {
+  return tests_micro*working_days*lamina_patient // volume for patients
+  + working_days*lamina_start_day // volume for clean/deluen/focus/QC before work
+  + working_days*lamina_end_day // volume for clean/deluen after work
+  + working_days*(session_per_day*lamina_session) // volume for two session a day (too optimistics)
+  + 120*lamina_patient // volume for calibration per year
   ;
 }
 
-function n_wash_pack(tests) {
-  return Math.ceil(tests/(2*tests_per_wash_blt));
+function n_wash_pack(tests, working_days) {
+  return Math.ceil((tests*wash_patient+session_per_day*working_days*wash_session)/(2*wash_btl_volume));
 }
 
-function n_lamina_pack(tests) {
-  return Math.ceil(tests/(2*tests_per_lamina_btl));
+function n_lamina_pack(volume) {
+  return Math.ceil(volume/(2 * lamina_btl_volume));
 }
 
 function n_stripes_pack(tests) {
